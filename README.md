@@ -1,12 +1,12 @@
-# 🏥 MediVigil AI - Official Pharmacovigilance & ADR Reporting Portal
+# 🏥 SOMed-AI - Official Pharmacovigilance & ADR Reporting Portal
 
-MediVigil AI is an enterprise-grade, multi-tier Adverse Drug Reaction (ADR) reporting and regulatory compliance platform aligned with national pharmacovigilance standards (such as PvPI and NCC-PvPI AYUSH). The system establishes a secure, closed-loop reporting pipeline bridging patients, clinical specialists, pharmacists, district health officers, state PvPI bodies, and national regulatory command centers.
+SOMed AI is an enterprise-grade, multi-tier Adverse Drug Reaction (ADR) reporting and regulatory compliance platform aligned with national pharmacovigilance standards (such as PvPI and NCC-PvPI AYUSH). The system establishes a secure, closed-loop reporting pipeline bridging patients, clinical specialists, pharmacists, district health officers, state PvPI bodies, and national regulatory command centers.
 
 ---
 
 ## 🏗️ System Architecture & Multi-Tier Workflow
 
-MediVigil AI enforces a strict regulatory review pipeline to ensure case safety and data authenticity:
+SOMed AI enforces a strict regulatory review pipeline to ensure case safety and data authenticity:
 1. **Case Ingestion:** Submissions are captured via manual entry, structured prescription text parsing, or real-time browser voice dictation.
 2. **Domain Routing:** Reports are automatically categorized by medical modality (`AYURVEDA`, `ALLOPATHY`, `BDS_DENTAL`, `SIDDHA`, `UNANI`, `HOMEOPATHY`) and queued for specialized medical examiners.
 3. **Pharmacist Authenticity Audit:** Pharmacists verify batch numbers, manufacturing sources, and commercial integrity.
@@ -28,7 +28,7 @@ MediVigil AI enforces a strict regulatory review pipeline to ensure case safety 
 ## 📂 Project Directory Structure
 
 ```text
-medivigil-ai/
+SOMed-AI /
 │
 ├── backend/
 │   ├── prisma/
