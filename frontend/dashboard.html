@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOMed AI - Official ADR Reporting Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container" style="max-width: 900px;">
+        <header class="dash-header">
+            <h2 id="welcome-title">SOMed Dashboard</h2>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </header>
+
+        <!-- Patient Section -->
+        <div id="patient-view" style="display: none;">
+            <div class="card">
+                <h3>Submit Adverse Drug Reaction (ADR) Report</h3>
+                
+                <!-- Mode Selection Toggle -->
+                <div style="display: flex; gap: 10px; margin: 15px 0;">
+                    <button type="button" onclick="setReportingMode('manual')" id="mode-manual-btn" style="background: #27ae60;">✍️ Fill Manually</button>
+                    <button type="button" onclick="setReportingMode('ai')" id="mode-ai-btn" style="background: #95a5a6;">🤖 AI Extraction (Text/Prescription/Voice)</button>
+                </div>
+
+                <!-- AI Extraction Box (Hidden by default) -->
+                <div id="ai-extraction-box" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px dashed #27ae60;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">Smart AI Extraction & Voice Dictation</h4>
+                    <p style="font-size: 13px; color: #555;">Type, paste, or use your voice to describe symptoms (e.g., "I took Ashwagandha Churna 5g daily made by Dabur, batch AB123, and developed severe skin rashes"):</p>
+                    
+                    <textarea id="ai-raw-text" placeholder="Paste prescription text or click record to speak naturally..." style="height: 100px; margin-bottom: 10px;"></textarea>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" onclick="extractWithAI()" style="background: #2980b9; margin: 0;">Extract Details with AI ✨</button>
+                        <button type="button" onclick="toggleVoiceRecording()" id="mic-btn" style="background: #e74c3c; margin: 0; width: auto; display: flex; align-items: center; gap: 5px;">🎙️ Start Voice Recording</button>
+                        <span id="mic-status" style="font-size: 13px; color: #c0392b; font-weight: bold;"></span>
+                    </div>
+
+                    <p id="ai-extract-msg" style="font-size: 13px; margin-top: 10px;"></p>
+                </div>
+
+                <form id="report-form" onsubmit="submitReport(event)">
+                    <!-- Category Selector -->
+                    <label><strong>Medicine Category *</strong></label>
+                    <select id="category" onchange="renderDynamicForm()" required>
+                        <option value="">-- Select Regulatory Category --</option>
+                        <option value="AYURVEDA">Ayurveda</option>
+                        <option value="BDS_DENTAL">BDS / Dental Therapeutics</option>
+                        <option value="SIDDHA">Siddha</option>
+                        <option value="UNANI">Unani</option>
+                        <option value="HOMEOPATHY">Homeopathy</option>
+                        <option value="ALLOPATHY">Allopathy</option>
+                    </select>
+
+                    <!-- Dynamic Form Container -->
+                    <div id="dynamic-form-fields"></div>
+
+                    <button type="submit" id="submit-btn" style="display: none; margin-top: 20px;">Submit Official Report</button>
+                </form>
+                <p id="report-msg"></p>
+            </div>
+
+            <!-- Patient History Section -->
+            <div class="card">
+                <h3>My Submitted Reports History</h3>
+                <div id="patient-reports-list">Loading your reports...</div>
+            </div>
+
+            <!-- Patient AI Chatbot Section -->
+            <div class="card" style="margin-top: 20px; border-left: 5px solid #2980b9;">
+                <h3 style="color: #2980b9;">🤖 SOMed AI Assistant</h3>
+                <p style="font-size: 13px; color: #555;">Ask questions regarding symptoms or adverse reactions (e.g., "I have vomiting after taking Triphala"):</p>
+                
+                <div id="chat-messages" style="background: #f8f9fa; height: 200px; border: 1px solid #ddd; border-radius: 6px; padding: 10px; overflow-y: auto; margin-bottom: 10px; font-size: 14px;">
+                    <div style="margin-bottom: 8px; color: #2c3e50;"><strong>SOMed AI:</strong> Hello! How can I assist you with your medication or symptoms today?</div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chat-input" placeholder="Type your query here..." style="flex: 1; margin: 0; padding: 8px;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                    <button type="button" onclick="sendChatMessage()" style="background: #2980b9; padding: 8px 15px; margin: 0; width: auto;">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Doctor Section -->
+        <div id="doctor-view" style="display: none;">
+            <div class="card" style="margin-bottom: 20px;">
+                <h3>🩺 Submit Official ADR Report (Doctor Consultation Form)</h3>
+                <p style="font-size: 13px; color: #555;">Fill out the official pharmacovigilance report form during patient consultation:</p>
+                
+                <form id="doctor-report-form" onsubmit="submitDoctorReport(event)">
+                    <label><strong>Medicine Category *</strong></label>
+                    <select id="doc-category" onchange="renderDoctorDynamicForm()" required>
+                        <option value="">-- Select Regulatory Category --</option>
+                        <option value="AYURVEDA">Ayurveda</option>
+                        <option value="BDS_DENTAL">BDS / Dental Therapeutics</option>
+                        <option value="SIDDHA">Siddha</option>
+                        <option value="UNANI">Unani</option>
+                        <option value="HOMEOPATHY">Homeopathy</option>
+                        <option value="ALLOPATHY">Allopathy</option>
+                    </select>
+
+                    <div id="doc-dynamic-form-fields"></div>
+
+                    <button type="submit" id="doc-submit-btn" style="display: none; margin-top: 20px; background: #27ae60;">Submit Official Doctor Report</button>
+                </form>
+                <p id="doc-report-msg"></p>
+            </div>
+
+            <div class="card">
+                <h3 id="role-heading">Assigned ADR Reports Review Queue</h3>
+                <div id="reports-list">Loading reports...</div>
+            </div>
+        </div>
+
+        <!-- District Officer Section -->
+        <div id="district-view" style="display: none;" class="card">
+            <h3>🏛️ District Health Office Verification Portal</h3>
+            <p style="font-size: 13px; color: #555;">Review reports verified by pharmacists, approve them for state review, or reject with comments:</p>
+            <div id="district-reports-list">Loading reports for district review...</div>
+        </div>
+
+        <!-- Hospital Administrator Section -->
+        <div id="admin-view" style="display: none;">
+            <div class="card">
+                <h3>Hospital Pharmacovigilance Performance & Metrics</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;" id="metrics-cards"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="filterAdminReports('ALL')" style="background: #34495e; padding: 8px 15px; color:white; border:none; border-radius:4px; cursor:pointer;">All Reports</button>
+                    <button onclick="filterAdminReports('PENDING')" style="background: #f39c12; padding: 8px 15px; color:white; border:none; border-radius:4px; cursor:pointer;">Monitor Pending Cases</button>
+                    <button onclick="generateHospitalReport()" style="background: #27ae60; padding: 8px 15px; color:white; border:none; border-radius:4px; cursor:pointer;">Generate Hospital Report (Export)</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Active Hospital Doctors Directory</h3>
+                <div id="hospital-doctors-list">Loading doctors directory...</div>
+            </div>
+
+            <div class="card">
+                <h3>Master Institution ADR Reports Monitor & Assignment</h3>
+                <div id="admin-reports-list">Loading master reports...</div>
+            </div>
+        </div>
+
+        <!-- Pharmacist Section -->
+        <div id="pharmacist-view" style="display: none;" class="card">
+            <h3>Pharmacist Authenticity & Batch Verification Portal</h3>
+            <div id="pharmacist-reports-list">Loading reports for verification...</div>
+        </div>
+
+        <!-- State Pharmacovigilance Officer Section -->
+        <div id="state-view" style="display: none;">
+            <div class="card">
+                <h3>State Pharmacovigilance Analytics & Trends</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;" id="state-metrics-cards"></div>
+            </div>
+
+            <div class="card">
+                <h3>Verified Reports Review & National Escalation</h3>
+                <div id="state-reports-list">Loading verified state reports...</div>
+            </div>
+        </div>
+
+        <!-- National Admin Section -->
+        <div id="national-view" style="display: none;">
+            <div class="card">
+                <h3>🏛️ National Pharmacovigilance Command Center (Government)</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;" id="national-metrics-cards"></div>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+                    <button onclick="switchNationalTab('overview')" style="background: #34495e; padding: 8px 12px; color:white; border:none; border-radius:4px; cursor:pointer;">📊 National Statistics & Heatmaps</button>
+                    <button onclick="switchNationalTab('trends')" style="background: #2980b9; padding: 8px 12px; color:white; border:none; border-radius:4px; cursor:pointer;">📈 Medicine Trends & Safety</button>
+                    <button onclick="switchNationalTab('performance')" style="background: #8e44ad; padding: 8px 12px; color:white; border:none; border-radius:4px; cursor:pointer;">🏥 Hospital & Doctor Performance</button>
+                    <button onclick="switchNationalTab('insights')" style="background: #d35400; padding: 8px 12px; color:white; border:none; border-radius:4px; cursor:pointer;">🤖 AI Insights & Signals</button>
+                    <button onclick="switchNationalTab('users')" style="background: #c0392b; padding: 8px 12px; color:white; border:none; border-radius:4px; cursor:pointer;">👥 Manage Users</button>
+                    <button onclick="exportNationalReport()" style="background: #27ae60; padding: 8px 12px; color:white; border:none; border-radius:4px; cursor:pointer;">📥 Export Reports (JSON)</button>
+                </div>
+            </div>
+
+            <!-- Tab 1: Overview & Registry -->
+            <div id="nat-tab-overview" class="card nat-tab-content">
+                <h4>Nationwide Approved & Escalated Reports Registry</h4>
+                <div id="national-reports-list">Loading national registry...</div>
+
+                <div class="card" style="margin-top: 20px; border-left: 5px solid #c0392b;">
+                    <h4 style="color: #c0392b;">🚫 Nationally Banned & Recalled Medicines Registry</h4>
+                    <p style="font-size: 13px; color: #555;">Tracking official regulatory bans, recall counts, and timestamps.</p>
+                    <div id="banned-medicines-list">Loading banned registry...</div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Trends & Heatmaps Simulation -->
+            <div id="nat-tab-trends" class="card nat-tab-content" style="display: none;">
+                <h4>National Medicine Adverse Reaction Trends & Geographic Heatmaps</h4>
+                <div style="background: #fdfefe; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px;">
+                    <p><strong>Top Suspected Active Ingredients / Formulas:</strong></p>
+                    <ul id="national-trends-list">Analyzing trend signals...</ul>
+                </div>
+                <div style="background: #eaeded; padding: 30px; text-align: center; border-radius: 6px; color: #555;">
+                    🗺️ <strong>National ADR Geographic Heatmap Module:</strong> High concentration cluster detected in Western and Northern regional districts.
+                </div>
+            </div>
+
+            <!-- Tab 3: Performance -->
+            <div id="nat-tab-performance" class="card nat-tab-content" style="display: none;">
+                <h4>Institutional & Clinical Specialist Performance Metrics</h4>
+                <p>Tracking review turnaround times and compliance standards across active hospital nodes and registered medical examiners.</p>
+                <div id="national-performance-metrics">Loading performance indicators...</div>
+            </div>
+
+            <!-- Tab 4: AI Insights -->
+            <div id="nat-tab-insights" class="card nat-tab-content" style="display: none;">
+                <h4>AI Pharmacovigilance Signal Detection & Risk Scoring</h4>
+                <div style="background: #f4f6f7; padding: 15px; border-left: 4px solid #d35400; border-radius: 4px;">
+                    <h5 style="margin-top:0; color:#d35400;">Automated Signal Detection Alert</h5>
+                    <p style="font-size: 13px; color: #333;">Machine learning model has detected an unusual spike in multi-organ hypersensitivity reports associated with specific herbal batch lots. Recommended action: Issue regulatory advisory.</p>
+                </div>
+            </div>
+
+            <!-- Tab 5: Manage Users -->
+            <div id="nat-tab-users" class="card nat-tab-content" style="display: none;">
+                <h4>System User Registry & Access Control Management</h4>
+                <div id="national-users-list">Loading user directory...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const role = localStorage.getItem('role');
+
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('welcome-title').innerText = `Dashboard (${role.replace('_', ' ')})`;
+
+        // Correct Role-Based View Switcher
+        if (role === 'PATIENT') {
+            document.getElementById('patient-view').style.display = 'block';
+            fetchPatientReports();
+        } else if (role === 'HOSPITAL_ADMIN') {
+            document.getElementById('admin-view').style.display = 'block';
+            fetchAdminStats();
+            fetchAdminReports();
+        } else if (role === 'NATIONAL_ADMIN') {
+            document.getElementById('national-view').style.display = 'block';
+            fetchNationalDashboard();
+        } else if (role === 'PHARMACIST') {
+            document.getElementById('pharmacist-view').style.display = 'block';
+            fetchPharmacistReports();
+        } else if (role === 'DISTRICT_OFFICER') {
+            document.getElementById('district-view').style.display = 'block';
+            fetchDistrictReports();
+        } else if (role === 'STATE_OFFICER') {
+            document.getElementById('state-view').style.display = 'block';
+            fetchStateAnalytics();
+            fetchStateReports();
+        } else {
+            document.getElementById('doctor-view').style.display = 'block';
+            fetchReports();
+        }
+
+        function setReportingMode(mode) {
+            const manualBtn = document.getElementById('mode-manual-btn');
+            const aiBtn = document.getElementById('mode-ai-btn');
+            const aiBox = document.getElementById('ai-extraction-box');
+
+            if (mode === 'manual') {
+                manualBtn.style.background = '#27ae60';
+                aiBtn.style.background = '#95a5a6';
+                aiBox.style.display = 'none';
+            } else {
+                aiBtn.style.background = '#27ae60';
+                manualBtn.style.background = '#95a5a6';
+                aiBox.style.display = 'block';
+            }
+        }
+
+        // Voice Dictation Implementation (Web Speech API)
+        let recognition = null;
+        let isRecording = false;
+
+        function toggleVoiceRecording() {
+            const micBtn = document.getElementById('mic-btn');
+            const statusEl = document.getElementById('mic-status');
+            const textArea = document.getElementById('ai-raw-text');
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+                return;
+            }
+
+            if (!isRecording) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'en-IN';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    micBtn.style.background = '#27ae60';
+                    micBtn.innerText = '⏹️ Stop Recording';
+                    statusEl.innerText = '🔴 Listening... Speak your symptoms now.';
+                };
+
+                recognition.onresult = (event) => {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    textArea.value = transcript;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error', event.error);
+                    statusEl.innerText = '❌ Error occurred during recording.';
+                    stopVoiceRecording();
+                };
+
+                recognition.onend = () => {
+                    stopVoiceRecording();
+                };
+
+                recognition.start();
+            } else {
+                stopVoiceRecording();
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (recognition) {
+                recognition.stop();
+            }
+            isRecording = false;
+            const micBtn = document.getElementById('mic-btn');
+            const statusEl = document.getElementById('mic-status');
+            micBtn.style.background = '#e74c3c';
+            micBtn.innerText = '🎙️ Start Voice Recording';
+            statusEl.innerText = '✔ Voice captured successfully! Click "Extract Details with AI".';
+        }
+
+        async function extractWithAI() {
+            const rawText = document.getElementById('ai-raw-text').value;
+            const msgEl = document.getElementById('ai-extract-msg');
+
+            if (!rawText) {
+                msgEl.style.color = 'red';
+                msgEl.innerText = 'Please enter or dictate some text description first.';
+                return;
+            }
+
+            msgEl.style.color = '#2980b9';
+            msgEl.innerText = 'Extracting fields using AI...';
+
+            try {
+                const response = await fetch(`${API_URL}/ai/extract`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ rawText })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('category').value = data.extracted.category || 'AYURVEDA';
+                    renderDynamicForm();
+
+                    if (document.getElementById('medicineName')) document.getElementById('medicineName').value = data.extracted.medicineName || '';
+                    if (document.getElementById('symptoms')) document.getElementById('symptoms').value = data.extracted.symptoms || '';
+                    if (document.getElementById('manufacturer')) document.getElementById('manufacturer').value = data.extracted.manufacturer || '';
+                    if (document.getElementById('batchNumber')) document.getElementById('batchNumber').value = data.extracted.batchNumber || '';
+                    if (document.getElementById('severity')) document.getElementById('severity').value = data.extracted.severity || 'MEDIUM';
+
+                    msgEl.style.color = 'green';
+                    msgEl.innerText = 'Successfully extracted and populated form fields! Review and submit.';
+                    setReportingMode('manual');
+                } else {
+                    msgEl.style.color = 'red';
+                    msgEl.innerText = data.error || 'Extraction failed';
+                }
+            } catch (err) {
+                msgEl.style.color = 'red';
+                msgEl.innerText = 'Server connection error during AI extraction';
+            }
+        }
+
+        let allMasterReports = [];
+
+        async function fetchAdminReports() {
+            const listEl = document.getElementById('admin-reports-list');
+            try {
+                const response = await fetch(`${API_URL}/admin/reports`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                allMasterReports = await response.json();
+                if (response.ok) {
+                    renderAdminTable(allMasterReports);
+                    fetchHospitalDoctors();
+                } else {
+                    listEl.innerHTML = `<p style="color:red;">${allMasterReports.error || 'Failed to load master reports'}</p>`;
+                }
+            } catch (err) {
+                listEl.innerHTML = '<p style="color:red;">Server connection error</p>';
+            }
+        }
+
+        function renderAdminTable(reports) {
+            const listEl = document.getElementById('admin-reports-list');
+            if (reports.length === 0) {
+                listEl.innerHTML = '<p>No reports found matching criteria.</p>';
+                return;
+            }
+
+            let html = '<table class="report-table"><tr><th>Submitted By</th><th>Medicine</th><th>Category</th><th>Symptoms</th><th>Severity</th><th>Status</th><th>Assign / Re-Route</th></tr>';
+            reports.forEach(r => {
+                html += `<tr>
+                    <td>${r.user ? r.user.email : 'Unknown'}</td>
+                    <td>${r.medicineName}</td>
+                    <td><b>${r.category}</b></td>
+                    <td>${r.symptoms}</td>
+                    <td>${r.severity}</td>
+                    <td><b>${r.status}</b></td>
+                    <td>
+                        <select onchange="reassignReport('${r.id}', this.value)" style="padding:4px;">
+                            <option value="">-- Change Domain --</option>
+                            <option value="AYURVEDA">Ayurveda</option>
+                            <option value="ALLOPATHY">Allopathy</option>
+                            <option value="BDS_DENTAL">BDS / Dental</option>
+                            <option value="SIDDHA">Siddha</option>
+                            <option value="HOMEOPATHY">Homeopathy</option>
+                            <option value="UNANI">Unani</option>
+                        </select>
+                    </td>
+                </tr>`;
+            });
+            html += '</table>';
+            listEl.innerHTML = html;
+        }
+
+        function filterAdminReports(statusType) {
+            if (statusType === 'ALL') {
+                renderAdminTable(allMasterReports);
+            } else {
+                const filtered = allMasterReports.filter(r => r.status === statusType);
+                renderAdminTable(filtered);
+            }
+        }
+
+        async function fetchHospitalDoctors() {
+            const docListEl = document.getElementById('hospital-doctors-list');
+            try {
+                const response = await fetch(`${API_URL}/admin/doctors`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const doctors = await response.json();
+                if (response.ok) {
+                    if (doctors.length === 0) {
+                        docListEl.innerHTML = '<p>No doctors registered in hospital directories.</p>';
+                        return;
+                    }
+                    let html = '<table class="report-table"><tr><th>Doctor Email</th><th>Specialization Role</th></tr>';
+                    doctors.forEach(d => {
+                        html += `<tr><td>${d.email}</td><td><b>${d.role ? d.role.name : 'Specialist'}</b></td></tr>`;
+                    });
+                    html += '</table>';
+                    docListEl.innerHTML = html;
+                }
+            } catch (err) {
+                docListEl.innerHTML = '<p style="color:red;">Failed to load doctor directory</p>';
+            }
+        }
+
+        async function reassignReport(reportId, newCategory) {
+            if (!newCategory) return;
+            try {
+                const response = await fetch(`${API_URL}/admin/report/${reportId}/assign`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ category: newCategory })
+                });
+                if (response.ok) {
+                    alert('Report successfully re-assigned to ' + newCategory);
+                    fetchAdminReports();
+                } else {
+                    alert('Failed to reassign report');
+                }
+            } catch (err) {
+                alert('Server connection error');
+            }
+        }
+
+        async function generateHospitalReport() {
+            try {
+                const response = await fetch(`${API_URL}/admin/hospital/export`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'MediVigil_Hospital_ADR_Report.json';
+                    a.click();
+                } else {
+                    alert('Failed to generate hospital report');
+                }
+            } catch (err) {
+                alert('Server connection error');
+            }
+        }
+
+        function renderDynamicForm() {
+            const category = document.getElementById('category').value;
+            const container = document.getElementById('dynamic-form-fields');
+            const submitBtn = document.getElementById('submit-btn');
+
+            if (!category) {
+                container.innerHTML = '';
+                submitBtn.style.display = 'none';
+                return;
+            }
+
+            submitBtn.style.display = 'block';
+
+            const officialPatientHeader = `
+                <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #ddd;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">1. Patient / Consumer Identification</h4>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex:2;"><label>Patient Name / Initials *</label><input type="text" id="patientName" placeholder="Full Name or Initials" required></div>
+                        <div style="flex:1;"><label>Patient Record Number (PRN)</label><input type="text" id="prn" placeholder="PRN / UHID"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex:1;"><label>Age (Years)</label><input type="number" id="age" placeholder="Age"></div>
+                        <div style="flex:1;"><label>Sex</label><select id="sex"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                        <div style="flex:1;"><label>IPD / OPD Number</label><input type="text" id="ipdOpd" placeholder="IPD/OPD No"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex:1;"><label>Village / Town / Address</label><input type="text" id="address" placeholder="Street / Village"></div>
+                        <div style="flex:1;"><label>District / State *</label><input type="text" id="districtState" placeholder="e.g. Pune, Maharashtra" required></div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;"><label>Diagnosis</label><input type="text" id="diagnosis" placeholder="Primary Diagnosis"></div>
+                        <div style="flex:1;"><label>Constitution & Temperament (Prakriti)</label><input type="text" id="constitution" placeholder="Vat/Pitta/Kapha (if applicable)"></div>
+                    </div>
+                </div>
+            `;
+
+            if (category === 'ALLOPATHY') {
+                container.innerHTML = officialPatientHeader + `
+                    <hr style="margin: 20px 0; border:0; border-top:1px solid #eee;">
+                    <h4 style="color: #2c3e50;">2. PvPI Allopathy Suspected Adverse Drug Reaction Format</h4>
+                    
+                    <label>Suspected Brand / Trade Name *</label>
+                    <input type="text" id="medicineName" placeholder="e.g. Augmentin 625mg" required>
+
+                    <label>Generic Name / Active Ingredient</label>
+                    <input type="text" id="genericName" placeholder="e.g. Amoxycillin & Potassium Clavulanate">
+
+                    <div style="position: relative; margin-bottom: 15px;">
+                        <label>Purchased From (Search Medical Store / Pharmacy) *</label>
+                        <input type="text" id="medicalSearchInput" placeholder="Type store name e.g. Prakash Medical..." oninput="searchMedicalStores(this.value)" autocomplete="off">
+                        <div id="medical-suggestions-box" style="display:none; position:absolute; background:white; border:1px solid #ccc; width:100%; max-height:250px; overflow-y:auto; z-index:100; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.15);"></div>
+                        <input type="hidden" id="manufacturer" required>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;"><label>Batch Number</label><input type="text" id="batchNumber" placeholder="Batch No"></div>
+                        <div style="flex:1;"><label>Expiry Date</label><input type="date" id="expiryDate"></div>
+                    </div>
+
+                    <label>Adverse Reaction Symptoms *</label>
+                    <textarea id="symptoms" placeholder="Describe clinical symptoms, onset time, and course..." required></textarea>
+
+                    <label>Severity Level *</label>
+                    <select id="severity" required>
+                        <option value="">Select Severity</option>
+                        <option value="LOW">Mild (Low)</option>
+                        <option value="MEDIUM">Moderate (Medium)</option>
+                        <option value="HIGH">Severe (High)</option>
+                        <option value="CRITICAL">Life Threatening / Critical (Death/Disability)</option>
+                    </select>
+
+                    <label>Concurrent Medicines / Other treatments taken in past 30 days</label>
+                    <input type="text" id="concurrentMeds" placeholder="Any other drugs taken">
+                `;
+            } else if (category === 'BDS_DENTAL') {
+                container.innerHTML = officialPatientHeader + `
+                    <hr style="margin: 20px 0; border:0; border-top:1px solid #eee;">
+                    <h4 style="color: #2980b9;">2. BDS / Dental Therapeutics Adverse Reaction Format</h4>
+                    
+                    <label>Dental Drug / Anesthetic / Product Name *</label>
+                    <input type="text" id="medicineName" placeholder="e.g. Local Anesthetic (Lignocaine), Chlorhexidine Mouthwash" required>
+
+                    <div style="position: relative; margin-bottom: 15px;">
+                        <label>Dental Clinic / Pharmacy Source *</label>
+                        <input type="text" id="medicalSearchInput" placeholder="Type store name e.g. Prakash Medical..." oninput="searchMedicalStores(this.value)" autocomplete="off">
+                        <div id="medical-suggestions-box" style="display:none; position:absolute; background:white; border:1px solid #ccc; width:100%; max-height:250px; overflow-y:auto; z-index:100; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.15);"></div>
+                        <input type="hidden" id="manufacturer" required>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;"><label>Batch Number</label><input type="text" id="batchNumber" placeholder="Batch No"></div>
+                    </div>
+
+                    <label>Oral & Systemic Symptoms Experienced *</label>
+                    <textarea id="symptoms" placeholder="Describe jaw swelling, tissue necrosis, mucosal ulceration, or nerve reaction..." required></textarea>
+
+                    <label>Severity Level *</label>
+                    <select id="severity" required>
+                        <option value="">Select Severity</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                    </select>
+                `;
+            } else {
+                container.innerHTML = officialPatientHeader + `
+                    <hr style="margin: 20px 0; border:0; border-top:1px solid #eee;">
+                    <h4 style="color: #b2530d;">2. NCC-PvPI AYUSH Official Reporting Format (${category})</h4>
+
+                    <label>Ayurvedic / Herbal Formulation Name *</label>
+                    <input type="text" id="medicineName" placeholder="e.g. Ashwagandha Churna / Triphala Vati" required>
+
+                    <div style="position: relative; margin-bottom: 15px;">
+                        <label>Pharmacy / Vendor Store (Search Medical Store) *</label>
+                        <input type="text" id="medicalSearchInput" placeholder="Type store name e.g. Prakash Medical..." oninput="searchMedicalStores(this.value)" autocomplete="off">
+                        <div id="medical-suggestions-box" style="display:none; position:absolute; background:white; border:1px solid #ccc; width:100%; max-height:250px; overflow-y:auto; z-index:100; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.15);"></div>
+                        <input type="hidden" id="manufacturer" required>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;">
+                            <label>Formulation Type</label>
+                            <select id="ayushFormType">
+                                <option value="Churna">Churna (Powder)</option>
+                                <option value="Vati/Gutika">Vati / Gutika (Tablet/Pill)</option>
+                                <option value="Asava/Arishta">Asava / Arishta (Fermented Decoction)</option>
+                                <option value="Taila/Ghrita">Taila / Ghrita (Medicated Oil/Ghee)</option>
+                                <option value="Bhasma">Bhasma (Calcined Ash)</option>
+                                <option value="Other">Other / Patent Proprietary</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label>Anupana (Vehicle / Adjuvant used)</label>
+                            <input type="text" id="anupana" placeholder="e.g. Warm water, Honey, Milk">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;"><label>Batch Number / Lot No</label><input type="text" id="batchNumber" placeholder="Batch No"></div>
+                    </div>
+
+                    <label>Nature of Adverse Event / Symptoms Experienced *</label>
+                    <textarea id="symptoms" placeholder="Describe symptoms (e.g. gastric irritation, rashes, nausea)..." required></textarea>
+
+                    <label>Severity Level *</label>
+                    <select id="severity" required>
+                        <option value="">Select Severity</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                    </select>
+
+                    <label>Dechallenge Information (Did reaction subside after stopping medicine?)</label>
+                    <select id="dechallenge">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Unknown">Unknown / Not Applicable</option>
+                    </select>
+                `;
+            }
+        }
+
+        // Doctor Dynamic Form Renderer
+        function renderDoctorDynamicForm() {
+            const category = document.getElementById('doc-category').value;
+            const container = document.getElementById('doc-dynamic-form-fields');
+            const submitBtn = document.getElementById('doc-submit-btn');
+
+            if (!category) {
+                container.innerHTML = '';
+                submitBtn.style.display = 'none';
+                return;
+            }
+
+            submitBtn.style.display = 'block';
+
+            const docPatientHeader = `
+                <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #ddd;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">1. Patient Identification (Consultation Entry)</h4>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex:2;"><label>Patient Name / Initials *</label><input type="text" id="doc-patientName" placeholder="Full Name or Initials" required></div>
+                        <div style="flex:1;"><label>PRN / UHID</label><input type="text" id="doc-prn" placeholder="Hospital ID"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <div style="flex:1;"><label>Age (Years)</label><input type="number" id="doc-age" placeholder="Age"></div>
+                        <div style="flex:1;"><label>Sex</label><select id="doc-sex"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+                        <div style="flex:1;"><label>IPD / OPD Number</label><input type="text" id="doc-ipdOpd" placeholder="IPD/OPD No"></div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex:1;"><label>District / State *</label><input type="text" id="doc-districtState" placeholder="e.g. Pune, Maharashtra" required></div>
+                        <div style="flex:1;"><label>Diagnosis</label><input type="text" id="doc-diagnosis" placeholder="Primary Diagnosis"></div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = docPatientHeader + `
+                <label>Suspected Medicine / Product Name *</label>
+                <input type="text" id="doc-medicineName" placeholder="e.g. Formulation or Brand Name" required>
+
+                <div style="position: relative; margin-bottom: 15px;">
+                    <label>Pharmacy / Source (Search Medical Store) *</label>
+                    <input type="text" id="doc-medicalSearchInput" placeholder="Type store name..." oninput="searchDocMedicalStores(this.value)" autocomplete="off">
+                    <div id="doc-medical-suggestions-box" style="display:none; position:absolute; background:white; border:1px solid #ccc; width:100%; max-height:250px; overflow-y:auto; z-index:100; border-radius:4px; box-shadow:0 4px 10px rgba(0,0,0,0.15);"></div>
+                    <input type="hidden" id="doc-manufacturer" required>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex:1;"><label>Batch Number</label><input type="text" id="doc-batchNumber" placeholder="Batch No"></div>
+                </div>
+
+                <label>Clinical Symptoms / Adverse Reaction *</label>
+                <textarea id="doc-symptoms" placeholder="Describe clinical findings..." required></textarea>
+
+                <label>Severity Level *</label>
+                <select id="doc-severity" required>
+                    <option value="">Select Severity</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                </select>
+            `;
+        }
+
+        let searchTimer = null;
+
+        function searchMedicalStores(query) {
+            const box = document.getElementById('medical-suggestions-box');
+            if (!query || query.trim().length === 0) {
+                box.style.display = 'none';
+                return;
+            }
+
+            box.innerHTML = '<div style="padding: 10px; color: #555; text-align: center;">🔍 Searching nationwide medical stores...</div>';
+            box.style.display = 'block';
+
+            clearTimeout(searchTimer);
+
+            searchTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/ai/search-medical`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ query })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.stores && data.stores.length > 0) {
+                        let html = '';
+                        data.stores.forEach(store => {
+                            html += `<div onclick="selectMedicalStore('${store.name.replace(/'/g, "\\'")}', '${store.location.replace(/'/g, "\\'")}')" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee;" onmouseover="this.style.background='#f1f1f1'" onmouseout="this.style.background='white'">
+                                <strong>${store.name}</strong><br><small style="color: #666;">📍 ${store.location}</small>
+                            </div>`;
+                        });
+                        box.innerHTML = html;
+                        box.style.display = 'block';
+                    } else {
+                        box.innerHTML = `<div onclick="selectMedicalStore('${query.replace(/'/g, "\\'")}', 'Custom Location')" style="padding: 10px; cursor: pointer; color: #2980b9;">➕ Use custom input: "<strong>${query}</strong>"</div>`;
+                        box.style.display = 'block';
+                    }
+                } catch (err) {
+                    box.innerHTML = `<div onclick="selectMedicalStore('${query.replace(/'/g, "\\'")}', 'India')" style="padding: 10px; cursor: pointer; color: #27ae60;">✔ Select: "<strong>${query}</strong>"</div>`;
+                    box.style.display = 'block';
+                }
+            }, 400);
+        }
+
+        function selectMedicalStore(name, location) {
+            const inputField = document.getElementById('medicalSearchInput');
+            const manufacturerField = document.getElementById('manufacturer');
+            const box = document.getElementById('medical-suggestions-box');
+
+            if (inputField) inputField.value = `${name} — ${location}`;
+            if (manufacturerField) manufacturerField.value = `${name} — ${location}`;
+            if (box) box.style.display = 'none';
+        }
+
+        async function searchDocMedicalStores(query) {
+            const box = document.getElementById('doc-medical-suggestions-box');
+            if (!query || query.trim().length === 0) {
+                box.style.display = 'none';
+                return;
+            }
+
+            box.innerHTML = '<div style="padding: 10px; color: #555; text-align: center;">🔍 Searching nationwide medical stores...</div>';
+            box.style.display = 'block';
+
+            clearTimeout(searchTimer);
+
+            searchTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/ai/search-medical`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ query })
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.stores && data.stores.length > 0) {
+                        let html = '';
+                        data.stores.forEach(store => {
+                            html += `<div onclick="selectDocStore('${store.name.replace(/'/g, "\\'")}', '${store.location.replace(/'/g, "\\'")}')" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee;" onmouseover="this.style.background='#f1f1f1'" onmouseout="this.style.background='white'">
+                                <strong>${store.name}</strong><br><small style="color: #666;">📍 ${store.location}</small>
+                            </div>`;
+                        });
+                        box.innerHTML = html;
+                        box.style.display = 'block';
+                    } else {
+                        box.innerHTML = `<div onclick="selectDocStore('${query.replace(/'/g, "\\'")}', 'Custom Location')" style="padding: 10px; cursor: pointer; color: #2980b9;">➕ Use custom input: "<strong>${query}</strong>"</div>`;
+                        box.style.display = 'block';
+                    }
+                } catch (err) {
+                    box.innerHTML = `<div onclick="selectDocStore('${query.replace(/'/g, "\\'")}', 'India')" style="padding: 10px; cursor: pointer; color: #27ae60;">✔ Select: "<strong>${query}</strong>"</div>`;
+                    box.style.display = 'block';
+                }
+            }, 400);
+        }
+
+        function selectDocStore(name, location) {
+            const inputField = document.getElementById('doc-medicalSearchInput');
+            const manufacturerField = document.getElementById('doc-manufacturer');
+            const box = document.getElementById('doc-medical-suggestions-box');
+
+            if (inputField) inputField.value = `${name} — ${location}`;
+            if (manufacturerField) manufacturerField.value = `${name} — ${location}`;
+            if (box) box.style.display = 'none';
+        }
+
+        async function submitReport(event) {
+            event.preventDefault();
+            const msgEl = document.getElementById('report-msg');
+
+            const reportData = {
+                medicineName: document.getElementById('medicineName').value,
+                category: document.getElementById('category').value,
+                symptoms: document.getElementById('symptoms').value,
+                severity: document.getElementById('severity').value,
+                manufacturer: document.getElementById('manufacturer') ? document.getElementById('manufacturer').value : null,
+                batchNumber: document.getElementById('batchNumber') ? document.getElementById('batchNumber').value : null
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/report`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(reportData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    msgEl.style.color = 'green';
+                    msgEl.innerText = 'Official ADR Report submitted successfully!';
+                    document.getElementById('report-form').reset();
+                    document.getElementById('dynamic-form-fields').innerHTML = '';
+                    document.getElementById('submit-btn').style.display = 'none';
+                    fetchPatientReports();
+                } else {
+                    msgEl.style.color = 'red';
+                    msgEl.innerText = data.error || 'Failed to submit report';
+                }
+            } catch (err) {
+                msgEl.style.color = 'red';
+                msgEl.innerText = 'Server connection error';
+            }
+        }
+
+        async function submitDoctorReport(event) {
+            event.preventDefault();
+            const msgEl = document.getElementById('doc-report-msg');
+
+            const reportData = {
+                medicineName: document.getElementById('doc-medicineName').value,
+                category: document.getElementById('doc-category').value,
+                symptoms: document.getElementById('doc-symptoms').value,
+                severity: document.getElementById('doc-severity').value,
+                manufacturer: document.getElementById('doc-manufacturer') ? document.getElementById('doc-manufacturer').value : null,
+                batchNumber: document.getElementById('doc-batchNumber') ? document.getElementById('doc-batchNumber').value : null
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/report`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(reportData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    msgEl.style.color = 'green';
+                    msgEl.innerText = 'Official Doctor ADR Report submitted successfully!';
+                    document.getElementById('doctor-report-form').reset();
+                    document.getElementById('doc-dynamic-form-fields').innerHTML = '';
+                    document.getElementById('doc-submit-btn').style.display = 'none';
+                    fetchReports();
+                } else {
+                    msgEl.style.color = 'red';
+                    msgEl.innerText = data.error || 'Failed to submit report';
+                }
+            } catch (err) {
+                msgEl.style.color = 'red';
+                msgEl.innerText = 'Server connection error';
+            }
+        }
+
+        async function fetchPatientReports() {
+            const listEl = document.getElementById('patient-reports-list');
+            try {
+                const response = await fetch(`${API_URL}/reports`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const reports = await response.json();
+                if (response.ok) {
+                    if (reports.length === 0) {
+                        listEl.innerHTML = '<p>You have not submitted any official reports yet.</p>';
+                        return;
+                    }
+
+                    let html = '<table class="report-table"><tr><th>Medicine</th><th>Category</th><th>Symptoms</th><th>Severity</th><th>Workflow Status</th></tr>';
+                    reports.forEach(r => {
+                        let statusBadge = '';
+                        if (r.status === 'PENDING') {
+                            statusBadge = '<span style="color: #e67e22; font-weight: bold;">⏳ Pending Doctor Review</span>';
+                        } else if (r.status === 'FORWARDED_TO_PHARMACIST') {
+                            statusBadge = '<span style="color: #2980b9; font-weight: bold;">🔍 Under Pharmacist Authenticity Review</span>';
+                        } else if (r.status === 'FORWARDED_TO_DISTRICT') {
+                            statusBadge = '<span style="color: #8e44ad; font-weight: bold;">🏛️ Pending District Health Review</span>';
+                        } else if (r.status === 'FORWARDED_TO_STATE_PVPI') {
+                            statusBadge = '<span style="color: #27ae60; font-weight: bold;">🚀 Forwarded to State PvPI</span>';
+                        } else if (r.status === 'APPROVED_BY_STATE') {
+                            statusBadge = '<span style="color: #27ae60; font-weight: bold;">🏛️ Forwarded to National Command Center</span>';
+                        } else {
+                            statusBadge = `<span style="color: #c0392b; font-weight: bold;">❌ Rejected (${r.status.replace(/_/g, ' ')})</span>`;
+                        }
+
+                        html += `<tr>
+                            <td>${r.medicineName}</td>
+                            <td><b>${r.category}</b></td>
+                            <td>${r.symptoms}</td>
+                            <td>${r.severity}</td>
+                            <td>${statusBadge}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    listEl.innerHTML = html;
+                } else {
+                    listEl.innerHTML = `<p style="color:red;">${reports.error || 'Failed to load reports'}</p>`;
+                }
+            } catch (err) {
+                listEl.innerHTML = '<p style="color:red;">Server connection error</p>';
+            }
+        }
+
+        async function fetchReports() {
+            const listEl = document.getElementById('reports-list');
+            try {
+                const response = await fetch(`${API_URL}/reports`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const reports = await response.json();
+                if (response.ok) {
+                    if (reports.length === 0) {
+                        listEl.innerHTML = '<p>No reports found for your medical domain specialization.</p>';
+                        return;
+                    }
+
+                    let html = '<table class="report-table"><tr><th>Medicine</th><th>Category</th><th>Symptoms</th><th>Severity</th><th>Status</th><th>Actions</th></tr>';
+                    reports.forEach(r => {
+                        let actionButtons = '';
+                        if (r.status === 'PENDING') {
+                            actionButtons = `
+                                <button onclick="updateStatus('${r.id}', 'APPROVE')" style="background:#27ae60; padding:5px 10px; font-size:12px; margin-right:5px; width:auto;">Approve & Forward to Pharmacist</button>
+                                <button onclick="updateStatus('${r.id}', 'REJECT')" style="background:#e74c3c; padding:5px 10px; font-size:12px; width:auto;">Reject</button>
+                            `;
+                        } else if (r.status === 'REJECTED') {
+                            actionButtons = `<span style="color: #c0392b; font-weight: bold;">❌ Rejected</span>`;
+                        } else {
+                            actionButtons = `<span style="color: #27ae60; font-weight: bold;">✔ Forwarded / Processed</span>`;
+                        }
+
+                        let displayStatus = r.status.replace(/_/g, ' ');
+
+                        html += `<tr>
+                            <td>${r.medicineName}</td>
+                            <td><b>${r.category}</b></td>
+                            <td>${r.symptoms}</td>
+                            <td>${r.severity}</td>
+                            <td><b>${displayStatus}</b></td>
+                            <td>${actionButtons}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    listEl.innerHTML = html;
+                } else {
+                    listEl.innerHTML = `<p style="color:red;">${reports.error || 'Failed to load reports'}</p>`;
+                }
+            } catch (err) {
+                listEl.innerHTML = '<p style="color:red;">Server connection error</p>';
+            }
+        }
+
+        async function updateStatus(reportId, actionType) {
+            try {
+                const response = await fetch(`${API_URL}/report/${reportId}/status`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ action: actionType })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Report successfully forwarded to Pharmacist verification queue!');
+                    fetchReports();
+                } else {
+                    alert(data.error || 'Failed to update status');
+                }
+            } catch (err) {
+                alert('Server connection error');
+            }
+        }
+
+        async function fetchDistrictReports() {
+            const listEl = document.getElementById('district-reports-list');
+            try {
+                const response = await fetch(`${API_URL}/district/reports`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const reports = await response.json();
+                if (response.ok) {
+                    if (reports.length === 0) {
+                        listEl.innerHTML = '<p>No reports currently pending district health review.</p>';
+                        return;
+                    }
+
+                    let html = '<table class="report-table"><tr><th>Medicine</th><th>Manufacturer</th><th>Batch No</th><th>Symptoms</th><th>Status</th><th>District Actions</th></tr>';
+                    reports.forEach(r => {
+                        let actions = `
+                            <button onclick="districtAction('${r.id}', 'APPROVE')" style="background:#27ae60; padding:5px 10px; font-size:12px; margin-bottom:5px;">Approve & Forward to State</button><br>
+                            <button onclick="districtReject('${r.id}')" style="background:#e74c3c; padding:5px 10px; font-size:12px;">Reject with Comment</button>
+                        `;
+
+                        html += `<tr>
+                            <td><b>${r.medicineName}</b></td>
+                            <td>${r.manufacturer || 'N/A'}</td>
+                            <td>${r.batchNumber || 'N/A'}</td>
+                            <td>${r.symptoms}</td>
+                            <td><b>${r.status}</b></td>
+                            <td>${actions}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    listEl.innerHTML = html;
+                }
+            } catch (err) {
+                listEl.innerHTML = '<p style="color:red;">Server connection error</p>';
+            }
+        }
+
+        async function districtAction(reportId, actionType) {
+            try {
+                const response = await fetch(`${API_URL}/district/report/${reportId}/action`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ action: actionType })
+                });
+                if (response.ok) {
+                    alert('Report successfully approved and forwarded to State PvPI!');
+                    fetchDistrictReports();
+                } else {
+                    alert('Action failed');
+                }
+            } catch (err) {
+                alert('Server error');
+            }
+        }
+
+        async function districtReject(reportId) {
+            const comment = prompt('Enter reason/comment for rejecting this report at the District level:');
+            if (!comment) return;
+
+            try {
+                const response = await fetch(`${API_URL}/district/report/${reportId}/action`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ action: 'REJECT', comment })
+                });
+                if (response.ok) {
+                    alert('Report rejected with comment.');
+                    fetchDistrictReports();
+                } else {
+                    alert('Failed to reject report');
+                }
+            } catch (err) {
+                alert('Server error');
+            }
+        }
+
+        async function fetchAdminStats() {
+            try {
+                const response = await fetch(`${API_URL}/admin/stats`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const cardsEl = document.getElementById('metrics-cards');
+                    cardsEl.innerHTML = `
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #3498db;">
+                            <h4 style="margin:0; color:#555;">Total Reports</h4>
+                            <p style="font-size:24px; font-weight:bold; color:#2c3e50; margin:5px 0;">${data.metrics.totalReports}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #f39c12;">
+                            <h4 style="margin:0; color:#555;">Pending Review</h4>
+                            <p style="font-size:24px; font-weight:bold; color:#e67e22; margin:5px 0;">${data.metrics.pendingReports}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #27ae60;">
+                            <h4 style="margin:0; color:#555;">Approved & Forwarded</h4>
+                            <p style="font-size:24px; font-weight:bold; color:#27ae60; margin:5px 0;">${data.metrics.approvedReports}</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Failed to load admin metrics', err);
+            }
+        }
+
+        async function fetchPharmacistReports() {
+            const listEl = document.getElementById('pharmacist-reports-list');
+            try {
+                const response = await fetch(`${API_URL}/pharmacist/reports`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const reports = await response.json();
+                if (response.ok) {
+                    if (reports.length === 0) {
+                        listEl.innerHTML = '<p>No reports currently pending pharmacist verification.</p>';
+                        return;
+                    }
+
+                    let html = '<table class="report-table"><tr><th>Medicine</th><th>Manufacturer</th><th>Batch No</th><th>Symptoms</th><th>Status & Comments</th><th>Actions / Verification</th></tr>';
+                    reports.forEach(r => {
+                        let actions = '';
+                        if (r.status === 'FORWARDED_TO_PHARMACIST') {
+                            actions = `
+                                <button onclick="verifyReport('${r.id}', 'APPROVE')" style="background:#27ae60; padding:5px 10px; font-size:12px; margin-bottom:5px;">Verify & Forward to District</button><br>
+                                <button onclick="rejectByPharmacist('${r.id}')" style="background:#e74c3c; padding:5px 10px; font-size:12px;">Reject with Comment</button>
+                            `;
+                        } else {
+                            actions = `<span style="font-weight:bold; color:${r.status === 'FORWARDED_TO_DISTRICT' ? '#27ae60' : '#c0392b'};">${r.status.replace(/_/g, ' ')}</span>`;
+                        }
+
+                        html += `<tr>
+                            <td><b>${r.medicineName}</b></td>
+                            <td>${r.manufacturer || 'N/A'}</td>
+                            <td>${r.batchNumber || 'N/A'}</td>
+                            <td>${r.symptoms}</td>
+                            <td><b>${r.status}</b><br><small style="color:red;">${r.pharmacistComment ? 'Note: ' + r.pharmacistComment : ''}</small></td>
+                            <td>${actions}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    listEl.innerHTML = html;
+                }
+            } catch (err) {
+                listEl.innerHTML = '<p style="color:red;">Server connection error</p>';
+            }
+        }
+
+        async function verifyReport(reportId, actionType) {
+            try {
+                const response = await fetch(`${API_URL}/pharmacist/report/${reportId}/verify`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ action: actionType })
+                });
+                if (response.ok) {
+                    alert('Verified and forwarded successfully to District Health Office!');
+                    fetchPharmacistReports();
+                } else {
+                    alert('Verification failed');
+                }
+            } catch (err) {
+                alert('Server error');
+            }
+        }
+
+        async function rejectByPharmacist(reportId) {
+            const comment = prompt('Please enter the reason/comment for rejecting this report:');
+            if (!comment) return;
+
+            try {
+                const response = await fetch(`${API_URL}/pharmacist/report/${reportId}/verify`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ action: 'REJECT', comment })
+                });
+                if (response.ok) {
+                    alert('Report rejected with comment.');
+                    fetchPharmacistReports();
+                } else {
+                    alert('Failed to reject report');
+                }
+            } catch (err) {
+                alert('Server error');
+            }
+        }
+
+        async function fetchStateAnalytics() {
+            try {
+                const response = await fetch(`${API_URL}/state/analytics`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const cardsEl = document.getElementById('state-metrics-cards');
+                    cardsEl.innerHTML = `
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #3498db;">
+                            <h4 style="margin:0; color:#555;">State Queue</h4>
+                            <p style="font-size:24px; font-weight:bold; color:#2c3e50; margin:5px 0;">${data.metrics.totalStateReports}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #27ae60;">
+                            <h4 style="margin:0; color:#555;">State Approved</h4>
+                            <p style="font-size:24px; font-weight:bold; color:#27ae60; margin:5px 0;">${data.metrics.approvedStateCount}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #e74c3c;">
+                            <h4 style="margin:0; color:#555;">Escalated Critical</h4>
+                            <p style="font-size:24px; font-weight:bold; color:#e74c3c; margin:5px 0;">${data.metrics.escalatedCount}</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Failed to load state analytics', err);
+            }
+        }
+
+        async function fetchStateReports() {
+            const listEl = document.getElementById('state-reports-list');
+            try {
+                const response = await fetch(`${API_URL}/state/reports`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const reports = await response.json();
+                if (response.ok) {
+                    if (reports.length === 0) {
+                        listEl.innerHTML = '<p>No verified reports pending state review.</p>';
+                        return;
+                    }
+
+                    let html = '<table class="report-table"><tr><th>Medicine</th><th>Manufacturer</th><th>Batch No</th><th>Symptoms</th><th>Status</th><th>State Actions</th></tr>';
+                    reports.forEach(r => {
+                        let actions = '';
+                        if (r.status === 'FORWARDED_TO_STATE_PVPI') {
+                            actions = `
+                                <button onclick="stateAction('${r.id}', 'APPROVE')" style="background:#27ae60; padding:5px 10px; font-size:12px; margin-bottom:5px;">Approve & Forward to National</button><br>
+                                <button onclick="stateAction('${r.id}', 'ESCALATE')" style="background:#e74c3c; padding:5px 10px; font-size:12px;">Escalate Critical</button>
+                            `;
+                        } else {
+                            actions = `<span style="font-weight:bold; color:${r.status === 'APPROVED_BY_STATE' ? '#27ae60' : '#c0392b'};">${r.status.replace(/_/g, ' ')}</span>`;
+                        }
+
+                        html += `<tr>
+                            <td><b>${r.medicineName}</b></td>
+                            <td>${r.manufacturer || 'N/A'}</td>
+                            <td>${r.batchNumber || 'N/A'}</td>
+                            <td>${r.symptoms}</td>
+                            <td><b>${r.status}</b></td>
+                            <td>${actions}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    listEl.innerHTML = html;
+                }
+            } catch (err) {
+                listEl.innerHTML = '<p style="color:red;">Server connection error</p>';
+            }
+        }
+
+        async function stateAction(reportId, actionType) {
+            try {
+                const response = await fetch(`${API_URL}/state/report/${reportId}/action`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ action: actionType })
+                });
+                if (response.ok) {
+                    alert(`Report successfully ${actionType === 'APPROVE' ? 'Approved & Forwarded to National' : 'Escalated'}!`);
+                    fetchStateReports();
+                    fetchStateAnalytics();
+                } else {
+                    alert('Action failed');
+                }
+            } catch (err) {
+                alert('Server error');
+            }
+        }
+
+        function switchNationalTab(tabName) {
+            document.querySelectorAll('.nat-tab-content').forEach(el => el.style.display = 'none');
+            document.getElementById(`nat-tab-${tabName}`).style.display = 'block';
+            if (tabName === 'users') fetchNationalUsers();
+        }
+
+        async function fetchNationalDashboard() {
+            try {
+                const response = await fetch(`${API_URL}/national/dashboard`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const cardsEl = document.getElementById('national-metrics-cards');
+                    cardsEl.innerHTML = `
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #3498db;">
+                            <h4 style="margin:0; color:#555;">Total Reports</h4>
+                            <p style="font-size:22px; font-weight:bold; color:#2c3e50; margin:5px 0;">${data.metrics.totalReports}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #f39c12;">
+                            <h4 style="margin:0; color:#555;">National Queue</h4>
+                            <p style="font-size:22px; font-weight:bold; color:#e67e22; margin:5px 0;">${data.metrics.nationalQueue}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #e74c3c;">
+                            <h4 style="margin:0; color:#555;">Escalated Critical</h4>
+                            <p style="font-size:22px; font-weight:bold; color:#e74c3c; margin:5px 0;">${data.metrics.escalatedCases}</p>
+                        </div>
+                        <div style="flex:1; background:#f8f9fa; padding:15px; border-radius:6px; text-align:center; border-left:4px solid #27ae60;">
+                            <h4 style="margin:0; color:#555;">Active Examiners</h4>
+                            <p style="font-size:22px; font-weight:bold; color:#27ae60; margin:5px 0;">${data.metrics.activeDoctors}</p>
+                        </div>
+                    `;
+
+                    const listEl = document.getElementById('national-reports-list');
+                    if (data.reports.length === 0) {
+                        listEl.innerHTML = '<p>No reports in registry.</p>';
+                    } else {
+                        let html = '<table class="report-table"><tr><th>Medicine</th><th>Category</th><th>Manufacturer</th><th>Symptoms</th><th>Status</th><th>Regulatory Action</th></tr>';
+                        data.reports.forEach(r => {
+                            html += `<tr>
+                                <td><b>${r.medicineName}</b></td>
+                                <td>${r.category}</td>
+                                <td>${r.manufacturer || 'N/A'}</td>
+                                <td>${r.symptoms}</td>
+                                <td><b>${r.status}</b></td>
+                                <td>
+                                    <button onclick="banMedicine('${r.medicineName}')" style="background:#c0392b; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px;">🚫 Ban</button>
+                                </td>
+                            </tr>`;
+                        });
+                        html += '</table>';
+                        listEl.innerHTML = html;
+                    }
+
+                    const bannedEl = document.getElementById('banned-medicines-list');
+                    if (!data.bannedReports || data.bannedReports.length === 0) {
+                        bannedEl.innerHTML = '<p style="color:#777;">No medicines currently banned or recalled nationwide.</p>';
+                    } else {
+                        let bannedHtml = `<p><strong>Total Banned / Recalled Entries:</strong> ${data.bannedReports.length}</p>`;
+                        bannedHtml += '<table class="report-table"><tr><th>Medicine Name</th><th>Category</th><th>Reason / Symptoms</th><th>Action Timestamp</th><th>Action</th></tr>';
+                        data.bannedReports.forEach(b => {
+                            bannedHtml += `<tr>
+                                <td><b>${b.medicineName}</b></td>
+                                <td>${b.category}</td>
+                                <td>${b.symptoms}</td>
+                                <td>${new Date(b.createdAt).toLocaleString()}</td>
+                                <td>
+                                    <button onclick="recallMedicine('${b.medicineName}')" style="background:#27ae60; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px;">♻️ Recall / Restore</button>
+                                </td>
+                            </tr>`;
+                        });
+                        bannedHtml += '</table>';
+                        bannedEl.innerHTML = bannedHtml;
+                    }
+
+                    const trendsEl = document.getElementById('national-trends-list');
+                    trendsEl.innerHTML = data.trends.map(t => `<li><strong>${t.medicineName}</strong> — ${t._count.medicineName} adverse event report(s) logged</li>`).join('');
+
+                    document.getElementById('national-performance-metrics').innerHTML = `
+                        <table class="report-table">
+                            <tr><th>Node Metric</th><th>Compliance Status</th><th>Average Turnaround</th></tr>
+                            <tr><td>Primary Hospital Nodes</td><td><b style="color:green;">Optimal (${data.performance.complianceRate}%)</b></td><td>${data.performance.avgTurnaroundHours} Hours</td></tr>
+                            <tr><td>Ayurveda/AYUSH/BDS Verification Units</td><td><b style="color:green;">Verified (${data.performance.complianceRate}%)</b></td><td>${data.performance.avgTurnaroundHours} Hours</td></tr>
+                            <tr><td>Specialist Review Speed</td><td><b style="color:green;">High Performance</b></td><td>${data.performance.avgTurnaroundHours} Hours</td></tr>
+                        </table>
+                    `;
+                }
+            } catch (err) {
+                console.error('Failed to load national dashboard data', err);
+            }
+        }
+
+        async function banMedicine(medicineName) {
+            if (!confirm(`Are you sure you want to issue a national ban for "${medicineName}"?`)) return;
+            try {
+                const response = await fetch(`${API_URL}/national/medicine/ban`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ medicineName })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    fetchNationalDashboard();
+                } else {
+                    alert(result.error || 'Failed to ban medicine');
+                }
+            } catch (err) {
+                alert('Server connection error');
+            }
+        }
+
+        async function recallMedicine(medicineName) {
+            if (!confirm(`Are you sure you want to recall and restore "${medicineName}" back to the active registry?`)) return;
+            try {
+                const response = await fetch(`${API_URL}/national/medicine/recall`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ medicineName })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    fetchNationalDashboard();
+                } else {
+                    alert(result.error || 'Failed to recall medicine');
+                }
+            } catch (err) {
+                alert('Server connection error');
+            }
+        }
+
+        async function fetchNationalUsers() {
+            const usersEl = document.getElementById('national-users-list');
+            try {
+                const response = await fetch(`${API_URL}/national/users`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await response.json();
+                if (response.ok) {
+                    let html = '<table class="report-table"><tr><th>User Email</th><th>Assigned Role</th><th>Registered On</th><th>Actions</th></tr>';
+                    users.forEach(u => {
+                        let roleDisplay = '';
+                        if (typeof u.role === 'string') {
+                            roleDisplay = u.role;
+                        } else if (u.role && typeof u.role === 'object') {
+                            roleDisplay = u.role.name || u.role.title || JSON.stringify(u.role);
+                        } else {
+                            roleDisplay = 'N/A';
+                        }
+
+                        html += `<tr>
+                            <td>${u.email}</td>
+                            <td><b>${roleDisplay}</b></td>
+                            <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+                            <td><button onclick="deleteUser('${u.id}')" style="background:#e74c3c; padding:4px 8px; font-size:11px; color:white; border:none; border-radius:3px;">Remove</button></td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                    usersEl.innerHTML = html;
+                }
+            } catch (err) {
+                usersEl.innerHTML = '<p style="color:red;">Failed to load users directory</p>';
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to revoke and remove this user?')) return;
+            try {
+                const response = await fetch(`${API_URL}/national/user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    alert('User removed successfully');
+                    fetchNationalUsers();
+                } else {
+                    alert('Failed to remove user');
+                }
+            } catch (err) {
+                alert('Server error');
+            }
+        }
+
+        function exportNationalReport() {
+            fetch(`${API_URL}/national/dashboard`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then(res => res.json()).then(data => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'MediVigil_National_Pharmacovigilance_Report.json';
+                a.click();
+            }).catch(() => alert('Export failed'));
+        }
+
+        async function sendChatMessage() {
+            const inputEl = document.getElementById('chat-input');
+            const messagesEl = document.getElementById('chat-messages');
+            const query = inputEl.value.trim();
+
+            if (!query) return;
+
+            messagesEl.innerHTML += `<div style="margin-bottom: 8px; text-align: right;"><span style="background: #3498db; color: white; padding: 6px 10px; border-radius: 6px; display: inline-block;">${query}</span></div>`;
+            inputEl.value = '';
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            const loadingId = 'loading-' + Date.now();
+            messagesEl.innerHTML += `<div id="${loadingId}" style="margin-bottom: 8px; color: #777; font-style: italic;">SOMed AI is analyzing...</div>`;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_URL}/ai/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ message: query })
+                });
+
+                const data = await response.json();
+                document.getElementById(loadingId).remove();
+
+                if (response.ok) {
+                    let formattedReply = data.reply
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n/g, '<br>');
+
+                    messagesEl.innerHTML += `<div style="margin-bottom: 8px; color: #2c3e50; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #eee;"><strong>SOMed AI:</strong><br>${formattedReply}</div>`;
+                } else {
+                    messagesEl.innerHTML += `<div style="margin-bottom: 8px; color: red;">${data.error || 'AI failed to respond.'}</div>`;
+                }
+            } catch (err) {
+                document.getElementById(loadingId).remove();
+                messagesEl.innerHTML += `<div style="margin-bottom: 8px; color: red;">Server connection error.</div>`;
+            }
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

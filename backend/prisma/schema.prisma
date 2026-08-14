@@ -1,0 +1,86 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum MedicineCategoryType {
+  AYURVEDA
+  SIDDHA
+  UNANI
+  HOMEOPATHY
+  ALLOPATHY
+  BDS_DENTAL
+}
+
+enum SeverityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  PENDING
+  AI_REVIEWED
+  APPROVED
+  REJECTED
+  ESCALATED
+  FORWARDED_TO_PHARMACIST
+  REJECTED_BY_PHARMACIST
+  FORWARDED_TO_DISTRICT     
+  REJECTED_BY_DISTRICT
+  FORWARDED_TO_STATE_PVPI
+  APPROVED_BY_STATE
+}
+
+enum RoleType {
+  PATIENT
+  AYURVEDA_DOCTOR
+  BDS_DOCTOR
+  ALLOPATHY_DOCTOR
+  SIDDHA_SPECIALIST
+  HOMEOPATHY_SPECIALIST
+  UNANI_SPECIALIST
+  HOSPITAL_ADMIN
+  DISTRICT_OFFICER
+  NATIONAL_ADMIN
+  PHARMACIST
+  STATE_OFFICER
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        RoleType @unique
+  users       User[]
+  createdAt   DateTime @default(now())
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  roleId       String
+  role         Role         @relation(fields: [roleId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  adrReports   ADRReport[]
+}
+
+model ADRReport {
+  id                 String               @id @default(uuid())
+  userId             String
+  user               User                 @relation(fields: [userId], references: [id])
+  medicineName       String
+  category           MedicineCategoryType
+  symptoms           String               @db.VarChar(500)
+  severity           SeverityLevel
+  status             ReportStatus         @default(PENDING)
+  manufacturer       String?
+  batchNumber        String?
+  pharmacistComment  String?              @db.VarChar(500)
+  createdAt          DateTime             @default(now())
+}
