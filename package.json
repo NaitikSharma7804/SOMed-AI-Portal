@@ -6,7 +6,7 @@
   "main": "api/index.js",
   "scripts": {
     "postinstall": "prisma generate --schema=./backend/prisma/schema.prisma",
-    "build": "prisma generate --schema=./backend/prisma/schema.prisma",
+    "build": "prisma generate --schema=./backend/prisma/schema.prisma && prisma migrate deploy --schema=./backend/prisma/schema.prisma",
     "start": "node backend/src/server.js",
     "db:push": "prisma db push --schema=./backend/prisma/schema.prisma",
     "db:deploy": "prisma migrate deploy --schema=./backend/prisma/schema.prisma",
