@@ -1,20 +1,18 @@
 {
-  "name": "backend",
+  "name": "somed-ai-portal",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "SOMed AI Official Pharmacovigilance & ADR Reporting Portal",
+  "private": true,
+  "main": "api/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "postinstall": "prisma generate --schema=./backend/prisma/schema.prisma",
+    "build": "prisma generate --schema=./backend/prisma/schema.prisma",
+    "start": "node backend/src/server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "@google/genai": "^2.13.0",
     "@prisma/adapter-mariadb": "^7.9.0",
+    "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -24,10 +22,6 @@
     "mariadb": "^3.5.3",
     "mysql2": "^3.23.1",
     "openai": "^6.49.0",
-    "@prisma/client": "^5.22.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.14",
     "prisma": "^5.22.0"
   }
 }

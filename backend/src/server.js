@@ -34,15 +34,24 @@ app.use('/api/ai', aiRoutes);
 const districtRoutes = require('./routes/districtRoutes'); 
 app.use('/api', districtRoutes); 
 
-// Health Check Route
-app.get('/', (req, res) => {
+// Health Check Routes
+const healthHandler = (req, res) => {
   res.status(200).json({
     status: 'success',
     message: 'Welcome to SOMed AI API (MySQL & JavaScript Edition)',
     timestamp: new Date().toISOString()
   });
-});
+};
 
-app.listen(PORT, () => {
-  console.log(`🚀 Somed AI Server running on port ${PORT}`);
-});
+app.get('/', healthHandler);
+app.get('/api', healthHandler);
+
+// Export Express app for Vercel Serverless Function
+module.exports = app;
+
+// Only start the HTTP listener if executed directly as the entry point
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 SOMed AI Server running on port ${PORT}`);
+  });
+}
