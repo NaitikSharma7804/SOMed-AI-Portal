@@ -7,7 +7,14 @@
   "scripts": {
     "postinstall": "prisma generate --schema=./backend/prisma/schema.prisma",
     "build": "prisma generate --schema=./backend/prisma/schema.prisma",
-    "start": "node backend/src/server.js"
+    "start": "node backend/src/server.js",
+    "db:push": "prisma db push --schema=./backend/prisma/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema=./backend/prisma/schema.prisma",
+    "db:seed": "prisma db seed"
+  },
+  "prisma": {
+    "schema": "backend/prisma/schema.prisma",
+    "seed": "node backend/prisma/seed.js"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
