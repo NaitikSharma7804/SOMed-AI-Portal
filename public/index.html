@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOMed AI - Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>SOMed AI Portal</h2>
+        
+        <!-- Tab Switcher -->
+        <div class="tabs">
+            <button onclick="switchTab('login')" id="btn-login" class="active-tab">Login</button>
+            <button onclick="switchTab('register')" id="btn-register">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-box" class="form-section">
+            <h3>Sign In</h3>
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button onclick="loginUser()">Login</button>
+            <p id="login-msg"></p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-box" class="form-section" style="display: none;">
+            <h3>Create Account</h3>
+            <input type="email" id="reg-email" placeholder="Email" required>
+            <input type="password" id="reg-password" placeholder="Password" required>
+            <select id="reg-role" required>
+    <option value="">Select Role</option>
+    <option value="PATIENT">Patient</option>
+    <option value="AYURVEDA_DOCTOR">Ayurveda Doctor</option>
+    <option value="ALLOPATHY_DOCTOR">Allopathy Doctor</option>
+    <option value="BDS_DOCTOR">BDS Doctor (Dental Surgeon)</option>
+    <option value="SIDDHA_SPECIALIST">Siddha Specialist</option>
+    <option value="HOMEOPATHY_SPECIALIST">Homeopathy Specialist</option>
+    <option value="UNANI_SPECIALIST">Unani Specialist</option>
+    <option value="HOSPITAL_ADMIN">Hospital Administrator</option>
+    <option value="PHARMACIST">Pharmacist (Authenticity Verification)</option>
+    <option value="DISTRICT_OFFICER">District Health Officer</option>
+    <option value="STATE_OFFICER">State Administrator</option>
+    <option value="NATIONAL_ADMIN">National Administrator</option>
+</select>
+            <button onclick="registerUser()">Register</button>
+            <p id="reg-msg"></p>
+        </div>
+    </div>
+    <script>
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000/api'
+            : '/api';
+
+        function switchTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('login-box').style.display = 'block';
+                document.getElementById('register-box').style.display = 'none';
+                document.getElementById('btn-login').classList.add('active-tab');
+                document.getElementById('btn-register').classList.remove('active-tab');
+            } else {
+                document.getElementById('login-box').style.display = 'none';
+                document.getElementById('register-box').style.display = 'block';
+                document.getElementById('btn-register').classList.add('active-tab');
+                document.getElementById('btn-login').classList.remove('active-tab');
+            }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const msgEl = document.getElementById('login-msg');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('role', data.user.role);
+                    localStorage.setItem('userId', data.user.id);
+                    msgEl.style.color = 'green';
+                    msgEl.innerText = 'Login successful! Redirecting...';
+                    setTimeout(() => window.location.href = 'dashboard.html', 1000);
+                } else {
+                    msgEl.style.color = 'red';
+                    msgEl.innerText = data.error || 'Login failed';
+                }
+            } catch (err) {
+                msgEl.style.color = 'red';
+                msgEl.innerText = 'Server connection error';
+            }
+        }
+
+        async function registerUser() {
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const roleName = document.getElementById('reg-role').value;
+            const msgEl = document.getElementById('reg-msg');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, roleName })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    msgEl.style.color = 'green';
+                    msgEl.innerText = 'Registered successfully! Please login.';
+                    setTimeout(() => switchTab('login'), 1500);
+                } else {
+                    msgEl.style.color = 'red';
+                    msgEl.innerText = data.error || 'Registration failed';
+                }
+            } catch (err) {
+                msgEl.style.color = 'red';
+                msgEl.innerText = 'Server connection error';
+            }
+        }
+    </script>
+</body>
+</html>
